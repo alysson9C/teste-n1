@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batalha Automática</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d1b69 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            width: 95%;
+            max-width: 1200px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 0 50px rgba(147, 51, 234, 0.3);
+            border: 2px solid rgba(147, 51, 234, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #9333ea, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(147, 51, 234, 0.5);
+        }
+
+        .character-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .character-card {
+            background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            border-color: #9333ea;
+            box-shadow: 0 10px 30px rgba(147, 51, 234, 0.4);
+        }
+
+        .character-card.selected {
+            border-color: #ec4899;
+            background: linear-gradient(145deg, #3a2a4e, #2a1a3e);
+        }
+
+        .character-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .battle-area {
+            display: none;
+            grid-template-columns: 1fr 200px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: center;
+            min-height: 300px;
+        }
+
+        .fighter {
+            background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .fighter-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .fighter.attacking .fighter-icon {
+            transform: translateX(10px) scale(1.1);
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            border: 2px solid #555;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #34d399);
+            transition: width 0.5s ease;
+            border-radius: 8px;
+        }
+
+        .vs-section {
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            color: #ec4899;
+            text-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
+        }
+
+        .battle-log {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            height: 150px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 1px solid #555;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .log-damage { background: rgba(239, 68, 68, 0.2); }
+        .log-heal { background: rgba(34, 197, 94, 0.2); }
+        .log-info { background: rgba(59, 130, 246, 0.2); }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(145deg, #9333ea, #7c3aed);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .upgrades {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .upgrade-card {
+            background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(147, 51, 234, 0.3);
+        }
+
+        .upgrade-card:hover {
+            transform: translateY(-3px);
+            border-color: #9333ea;
+            box-shadow: 0 8px 25px rgba(147, 51, 234, 0.4);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #555;
+        }
+
+        .damage-text {
+            position: absolute;
+            font-size: 1.5em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: damageFloat 1s ease-out;
+            z-index: 10;
+        }
+
+        @keyframes damageFloat {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        .wave-info {
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #ec4899;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .battle-area {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .vs-section {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>⚔️ Batalha Automática ⚔️</h1>
+        
+        <div id="characterSelection" class="character-selection">
+            <div class="character-card" data-character="warrior">
+                <span class="character-icon">🛡️</span>
+                <h3>Guerreiro</h3>
+                <p>HP: 150 | ATK: 25 | DEF: 15</p>
+                <p>Especialista em resistência</p>
+            </div>
+            <div class="character-card" data-character="mage">
+                <span class="character-icon">🔮</span>
+                <h3>Mago</h3>
+                <p>HP: 100 | ATK: 35 | DEF: 8</p>
+                <p>Alto dano mágico</p>
+            </div>
+            <div class="character-card" data-character="archer">
+                <span class="character-icon">🏹</span>
+                <h3>Arqueiro</h3>
+                <p>HP: 120 | ATK: 30 | DEF: 10</p>
+                <p>Ataques rápidos e precisos</p>
+            </div>
+            <div class="character-card" data-character="rogue">
+                <span class="character-icon">🗡️</span>
+                <h3>Ladino</h3>
+                <p>HP: 90 | ATK: 40 | DEF: 5</p>
+                <p>Ataques críticos frequentes</p>
+            </div>
+            <div class="character-card" data-character="paladin">
+                <span class="character-icon">⚔️</span>
+                <h3>Paladino</h3>
+                <p>HP: 140 | ATK: 28 | DEF: 18</p>
+                <p>Equilibrio perfeito</p>
+            </div>
+            <div class="character-card" data-character="necromancer">
+                <span class="character-icon">💀</span>
+                <h3>Necromante</h3>
+                <p>HP: 80 | ATK: 45 | DEF: 6</p>
+                <p>Magia das trevas</p>
+            </div>
+            <div class="character-card" data-character="monk">
+                <span class="character-icon">👊</span>
+                <h3>Monge</h3>
+                <p>HP: 110 | ATK: 32 | DEF: 12</p>
+                <p>Ataques ultrarrápidos</p>
+            </div>
+            <div class="character-card" data-character="berserker">
+                <span class="character-icon">🪓</span>
+                <h3>Berserker</h3>
+                <p>HP: 130 | ATK: 42 | DEF: 8</p>
+                <p>Fúria selvagem</p>
+            </div>
+            <div class="character-card" data-character="druid">
+                <span class="character-icon">🌿</span>
+                <h3>Druida</h3>
+                <p>HP: 125 | ATK: 26 | DEF: 14</p>
+                <p>Poder da natureza</p>
+            </div>
+            <div class="character-card" data-character="assassin">
+                <span class="character-icon">🗡️</span>
+                <h3>Assassino</h3>
+                <p>HP: 85 | ATK: 48 | DEF: 4</p>
+                <p>Morte silenciosa</p>
+            </div>
+            <div class="character-card" data-character="witch">
+                <span class="character-icon">🧙‍♀️</span>
+                <h3>Bruxa</h3>
+                <p>HP: 95 | ATK: 38 | DEF: 9</p>
+                <p>Feitiços poderosos</p>
+            </div>
+            <div class="character-card" data-character="vampire">
+                <span class="character-icon">🧛</span>
+                <h3>Vampiro</h3>
+                <p>HP: 115 | ATK: 36 | DEF: 11</p>
+                <p>Roubo de vida</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="startGame">Iniciar Jogo</button>
+        </div>
+
+        <div id="waveInfo" class="wave-info"></div>
+
+        <div id="battleArea" class="battle-area">
+            <div id="player" class="fighter">
+                <span id="playerIcon" class="fighter-icon">🛡️</span>
+                <h3 id="playerName">Guerreiro</h3>
+                <div class="health-bar">
+                    <div id="playerHealth" class="health-fill"></div>
+                </div>
+                <p id="playerHP">150/150 HP</p>
+            </div>
+
+            <div class="vs-section">VS</div>
+
+            <div id="enemy" class="fighter">
+                <span id="enemyIcon" class="fighter-icon">👹</span>
+                <h3 id="enemyName">Goblin</h3>
+                <div class="health-bar">
+                    <div id="enemyHealth" class="health-fill"></div>
+                </div>
+                <p id="enemyHP">80/80 HP</p>
+            </div>
+        </div>
+
+        <div id="battleLog" class="battle-log"></div>
+
+        <div class="controls">
+            <button id="pauseBtn" disabled>Pausar</button>
+            <button id="resetBtn">Reiniciar</button>
+        </div>
+
+        <div id="upgrades" class="upgrades">
+            <div class="upgrade-card" data-upgrade="health">
+                <h3>❤️ Mais Vida</h3>
+                <p>+30 HP máximo</p>
+                <p>Cura completamente</p>
+            </div>
+            <div class="upgrade-card" data-upgrade="attack">
+                <h3>⚔️ Mais Ataque</h3>
+                <p>+10 de dano</p>
+                <p>Ataques mais poderosos</p>
+            </div>
+            <div class="upgrade-card" data-upgrade="defense">
+                <h3>🛡️ Mais Defesa</h3>
+                <p>+5 de defesa</p>
+                <p>Reduz dano recebido</p>
+            </div>
+            <div class="upgrade-card" data-upgrade="speed">
+                <h3>⚡ Velocidade</h3>
+                <p>Ataca 20% mais rápido</p>
+                <p>Mais ataques por segundo</p>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Onda:</strong> <span id="waveNumber">0</span>
+            </div>
+            <div class="stat-item">
+                <strong>Inimigos Mortos:</strong> <span id="enemiesKilled">0</span>
+            </div>
+            <div class="stat-item">
+                <strong>Dano Total:</strong> <span id="totalDamage">0</span>
+            </div>
+            <div class="stat-item">
+                <strong>Tempo:</strong> <span id="gameTime">00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AutoBattleGame {
+            constructor() {
+                this.selectedCharacter = null;
+                this.player = null;
+                this.enemy = null;
+                this.battleInterval = null;
+                this.isPaused = false;
+                this.wave = 0;
+                this.enemiesKilled = 0;
+                this.totalDamage = 0;
+                this.gameStartTime = null;
+                this.timeInterval = null;
+                
+                this.characters = {
+                    warrior: { name: 'Guerreiro', icon: '🛡️', hp: 150, maxHp: 150, attack: 25, defense: 15, speed: 1000 },
+                    mage: { name: 'Mago', icon: '🔮', hp: 100, maxHp: 100, attack: 35, defense: 8, speed: 1200 },
+                    archer: { name: 'Arqueiro', icon: '🏹', hp: 120, maxHp: 120, attack: 30, defense: 10, speed: 800 },
+                    rogue: { name: 'Ladino', icon: '🗡️', hp: 90, maxHp: 90, attack: 40, defense: 5, speed: 700 },
+                    paladin: { name: 'Paladino', icon: '⚔️', hp: 140, maxHp: 140, attack: 28, defense: 18, speed: 1100 },
+                    necromancer: { name: 'Necromante', icon: '💀', hp: 80, maxHp: 80, attack: 45, defense: 6, speed: 1300 },
+                    monk: { name: 'Monge', icon: '👊', hp: 110, maxHp: 110, attack: 32, defense: 12, speed: 600 },
+                    berserker: { name: 'Berserker', icon: '🪓', hp: 130, maxHp: 130, attack: 42, defense: 8, speed: 900 },
+                    druid: { name: 'Druida', icon: '🌿', hp: 125, maxHp: 125, attack: 26, defense: 14, speed: 1000 },
+                    assassin: { name: 'Assassino', icon: '🗡️', hp: 85, maxHp: 85, attack: 48, defense: 4, speed: 650 },
+                    witch: { name: 'Bruxa', icon: '🧙‍♀️', hp: 95, maxHp: 95, attack: 38, defense: 9, speed: 1150 },
+                    vampire: { name: 'Vampiro', icon: '🧛', hp: 115, maxHp: 115, attack: 36, defense: 11, speed: 850 }
+                };
+
+                this.enemies = [
+                    { name: 'Goblin', icon: '👹', hp: 80, attack: 15, defense: 5 },
+                    { name: 'Orc', icon: '👺', hp: 120, attack: 20, defense: 8 },
+                    { name: 'Esqueleto', icon: '💀', hp: 90, attack: 18, defense: 6 },
+                    { name: 'Lobisomem', icon: '🐺', hp: 140, attack: 25, defense: 10 },
+                    { name: 'Vampiro', icon: '🧛', hp: 160, attack: 28, defense: 12 },
+                    { name: 'Troll', icon: '👹', hp: 200, attack: 30, defense: 12 },
+                    { name: 'Bruxa', icon: '🧙‍♀️', hp: 180, attack: 35, defense: 8 },
+                    { name: 'Golem', icon: '🗿', hp: 250, attack: 25, defense: 25 },
+                    { name: 'Dragão', icon: '🐉', hp: 300, attack: 45, defense: 20 },
+                    { name: 'Demônio', icon: '😈', hp: 280, attack: 40, defense: 15 },
+                    { name: 'Lich', icon: '☠️', hp: 220, attack: 50, defense: 18 },
+                    { name: 'Hidra', icon: '🐍', hp: 350, attack: 38, defense: 22 },
+                    { name: 'Fenix', icon: '🔥', hp: 320, attack: 48, defense: 16 },
+                    { name: 'Kraken', icon: '🐙', hp: 400, attack: 42, defense: 28 },
+                    { name: 'Rei Demônio', icon: '👑', hp: 500, attack: 60, defense: 30 }
+                ];
+
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                // Seleção de personagem
+                document.querySelectorAll('.character-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('.character-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        this.selectedCharacter = card.dataset.character;
+                    });
+                });
+
+                // Controles
+                document.getElementById('startGame').addEventListener('click', () => this.startGame());
+                document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
+                document.getElementById('resetBtn').addEventListener('click', () => this.resetGame());
+
+                // Upgrades
+                document.querySelectorAll('.upgrade-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        this.selectUpgrade(card.dataset.upgrade);
+                    });
+                });
+            }
+
+            startGame() {
+                if (!this.selectedCharacter) {
+                    alert('Selecione um personagem primeiro!');
+                    return;
+                }
+
+                this.player = { ...this.characters[this.selectedCharacter] };
+                this.wave = 1;
+                this.enemiesKilled = 0;
+                this.totalDamage = 0;
+                this.gameStartTime = Date.now();
+
+                document.getElementById('characterSelection').style.display = 'none';
+                document.getElementById('battleArea').style.display = 'grid';
+                document.getElementById('startGame').style.display = 'none';
+                document.getElementById('pauseBtn').disabled = false;
+
+                this.updatePlayerDisplay();
+                this.startWave();
+                this.startTimer();
+            }
+
+            startWave() {
+                const enemyTemplate = this.enemies[Math.min(Math.floor((this.wave - 1) / 3), this.enemies.length - 1)];
+                const hpMultiplier = 1 + (this.wave - 1) * 0.3;
+                const attackMultiplier = 1 + (this.wave - 1) * 0.2;
+
+                this.enemy = {
+                    ...enemyTemplate,
+                    hp: Math.floor(enemyTemplate.hp * hpMultiplier),
+                    maxHp: Math.floor(enemyTemplate.hp * hpMultiplier),
+                    attack: Math.floor(enemyTemplate.attack * attackMultiplier)
+                };
+
+                this.updateEnemyDisplay();
+                this.updateWaveInfo();
+                this.startBattle();
+            }
+
+            startBattle() {
+                this.battleInterval = setInterval(() => {
+                    if (!this.isPaused) {
+                        this.playerAttack();
+                        if (this.enemy.hp > 0) {
+                            setTimeout(() => this.enemyAttack(), 500);
+                        }
+                    }
+                }, this.player.speed);
+            }
+
+            playerAttack() {
+                if (this.enemy.hp <= 0) return;
+
+                const damage = Math.max(1, this.player.attack - this.enemy.defense + Math.floor(Math.random() * 10) - 5);
+                this.enemy.hp = Math.max(0, this.enemy.hp - damage);
+                this.totalDamage += damage;
+
+                this.showDamage('enemy', damage, '#ff4444');
+                this.addBattleLog(`${this.player.name} causa ${damage} de dano!`, 'log-damage');
+                this.updateEnemyDisplay();
+
+                // Animação de ataque
+                document.getElementById('player').classList.add('attacking');
+                setTimeout(() => document.getElementById('player').classList.remove('attacking'), 300);
+
+                if (this.enemy.hp <= 0) {
+                    this.enemiesKilled++;
+                    this.addBattleLog(`${this.enemy.name} foi derrotado!`, 'log-info');
+                    clearInterval(this.battleInterval);
+                    this.showUpgrades();
+                }
+
+                this.updateStats();
+            }
+
+            enemyAttack() {
+                if (this.player.hp <= 0 || this.enemy.hp <= 0) return;
+
+                const damage = Math.max(1, this.enemy.attack - this.player.defense + Math.floor(Math.random() * 8) - 4);
+                this.player.hp = Math.max(0, this.player.hp - damage);
+
+                this.showDamage('player', damage, '#ff4444');
+                this.addBattleLog(`${this.enemy.name} causa ${damage} de dano!`, 'log-damage');
+                this.updatePlayerDisplay();
+
+                // Animação de ataque
+                document.getElementById('enemy').classList.add('attacking');
+                setTimeout(() => document.getElementById('enemy').classList.remove('attacking'), 300);
+
+                if (this.player.hp <= 0) {
+                    this.gameOver();
+                }
+            }
+
+            showUpgrades() {
+                // Recupera 45% da vida ao completar uma onda
+                const healAmount = Math.floor(this.player.maxHp * 0.45);
+                const oldHp = this.player.hp;
+                this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+                const actualHeal = this.player.hp - oldHp;
+                
+                if (actualHeal > 0) {
+                    this.addBattleLog(`Você recupera ${actualHeal} de vida entre as ondas!`, 'log-heal');
+                    this.updatePlayerDisplay();
+                }
+                
+                document.getElementById('upgrades').style.display = 'grid';
+                this.addBattleLog('Escolha uma melhoria para a próxima onda!', 'log-info');
+            }
+
+            selectUpgrade(upgradeType) {
+                switch (upgradeType) {
+                    case 'health':
+                        this.player.maxHp += 30;
+                        this.player.hp = this.player.maxHp;
+                        this.addBattleLog('Vida máxima aumentada e vida restaurada!', 'log-heal');
+                        break;
+                    case 'attack':
+                        this.player.attack += 10;
+                        this.addBattleLog('Ataque aumentado!', 'log-info');
+                        break;
+                    case 'defense':
+                        this.player.defense += 5;
+                        this.addBattleLog('Defesa aumentada!', 'log-info');
+                        break;
+                    case 'speed':
+                        this.player.speed = Math.max(200, this.player.speed * 0.8);
+                        this.addBattleLog('Velocidade de ataque aumentada!', 'log-info');
+                        break;
+                }
+
+                document.getElementById('upgrades').style.display = 'none';
+                this.updatePlayerDisplay();
+                this.wave++;
+                
+                setTimeout(() => this.startWave(), 1000);
+            }
+
+            showDamage(target, damage, color) {
+                const element = document.getElementById(target);
+                const damageText = document.createElement('div');
+                damageText.className = 'damage-text';
+                damageText.textContent = `-${damage}`;
+                damageText.style.color = color;
+                damageText.style.left = Math.random() * 100 + 'px';
+                damageText.style.top = Math.random() * 50 + 'px';
+
+                element.style.position = 'relative';
+                element.appendChild(damageText);
+
+                setTimeout(() => damageText.remove(), 1000);
+            }
+
+            addBattleLog(message, className) {
+                const log = document.getElementById('battleLog');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${className}`;
+                entry.textContent = message;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+
+            updatePlayerDisplay() {
+                document.getElementById('playerIcon').textContent = this.player.icon;
+                document.getElementById('playerName').textContent = this.player.name;
+                document.getElementById('playerHP').textContent = `${this.player.hp}/${this.player.maxHp} HP`;
+                
+                const healthPercent = (this.player.hp / this.player.maxHp) * 100;
+                document.getElementById('playerHealth').style.width = healthPercent + '%';
+            }
+
+            updateEnemyDisplay() {
+                document.getElementById('enemyIcon').textContent = this.enemy.icon;
+                document.getElementById('enemyName').textContent = this.enemy.name;
+                document.getElementById('enemyHP').textContent = `${this.enemy.hp}/${this.enemy.maxHp} HP`;
+                
+                const healthPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+                document.getElementById('enemyHealth').style.width = healthPercent + '%';
+            }
+
+            updateWaveInfo() {
+                document.getElementById('waveInfo').textContent = `Onda ${this.wave} - ${this.enemy.name}`;
+            }
+
+            updateStats() {
+                document.getElementById('waveNumber').textContent = this.wave;
+                document.getElementById('enemiesKilled').textContent = this.enemiesKilled;
+                document.getElementById('totalDamage').textContent = this.totalDamage;
+            }
+
+            startTimer() {
+                this.timeInterval = setInterval(() => {
+                    if (!this.isPaused && this.gameStartTime) {
+                        const elapsed = Math.floor((Date.now() - this.gameStartTime) / 1000);
+                        const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                        const seconds = (elapsed % 60).toString().padStart(2, '0');
+                        document.getElementById('gameTime').textContent = `${minutes}:${seconds}`;
+                    }
+                }, 1000);
+            }
+
+            togglePause() {
+                this.isPaused = !this.isPaused;
+                document.getElementById('pauseBtn').textContent = this.isPaused ? 'Continuar' : 'Pausar';
+            }
+
+            gameOver() {
+                clearInterval(this.battleInterval);
+                clearInterval(this.timeInterval);
+                this.addBattleLog('Game Over! Você foi derrotado!', 'log-damage');
+                document.getElementById('pauseBtn').disabled = true;
+                alert(`Game Over! Você sobreviveu ${this.wave} ondas e matou ${this.enemiesKilled} inimigos!`);
+            }
+
+            resetGame() {
+                clearInterval(this.battleInterval);
+                clearInterval(this.timeInterval);
+                
+                document.getElementById('characterSelection').style.display = 'grid';
+                document.getElementById('battleArea').style.display = 'none';
+                document.getElementById('upgrades').style.display = 'none';
+                document.getElementById('startGame').style.display = 'inline-block';
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('pauseBtn').textContent = 'Pausar';
+                
+                document.getElementById('battleLog').innerHTML = '';
+                document.getElementById('waveInfo').textContent = '';
+                
+                this.selectedCharacter = null;
+                this.player = null;
+                this.enemy = null;
+                this.isPaused = false;
+                this.wave = 0;
+                this.enemiesKilled = 0;
+                this.totalDamage = 0;
+                this.gameStartTime = null;
+                
+                document.querySelectorAll('.character-card').forEach(c => c.classList.remove('selected'));
+                this.updateStats();
+                document.getElementById('gameTime').textContent = '00:00';
+            }
+        }
+
+        // Inicializar o jogo
+        const game = new AutoBattleGame();
+    </script>
+</body>
+</html>
